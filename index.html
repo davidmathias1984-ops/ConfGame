@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Heads or Tails — Tech Quiz</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f4; min-height: 100vh; display: flex; align-items: flex-start; justify-content: center; padding: 24px 16px; }
+  .game { width: 100%; max-width: 640px; }
+  .screen { display: none; }
+  .screen.active { display: block; }
+  .card { background: #fff; border: 1px solid #e5e5e3; border-radius: 14px; padding: 20px 24px; margin-bottom: 12px; }
+
+  /* Intro */
+  .intro-hero { text-align: center; padding: 2rem 0 1.5rem; }
+  .intro-hero h1 { font-size: 32px; font-weight: 600; color: #1a1a18; margin-bottom: 8px; }
+  .intro-hero .sub { font-size: 15px; color: #6b6b67; line-height: 1.7; max-width: 460px; margin: 0 auto; }
+  .rules-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 1.5rem 0; }
+  .rule-card { background: #fff; border: 1px solid #e5e5e3; border-radius: 10px; padding: 14px 16px; }
+  .rule-card strong { display: block; font-size: 14px; font-weight: 600; color: #1a1a18; margin-bottom: 4px; }
+  .rule-card span { font-size: 13px; color: #6b6b67; line-height: 1.5; }
+  .start-btn { display: block; width: 100%; padding: 15px; background: #185FA5; color: #fff; border: none; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 1rem; transition: opacity 0.15s; }
+  .start-btn:hover { opacity: 0.88; }
+
+  /* Host toggle */
+  .host-row { display: flex; align-items: center; gap: 10px; font-size: 13px; color: #6b6b67; margin-bottom: 12px; }
+  .tog { position: relative; display: inline-block; width: 36px; height: 20px; flex-shrink: 0; }
+  .tog input { opacity: 0; width: 0; height: 0; }
+  .tog-slider { position: absolute; inset: 0; background: #ccc; border-radius: 10px; transition: .2s; cursor: pointer; }
+  .tog input:checked + .tog-slider { background: #185FA5; }
+  .tog-slider::before { content: ''; position: absolute; height: 14px; width: 14px; left: 3px; bottom: 3px; background: #fff; border-radius: 50%; transition: .2s; }
+  .tog input:checked + .tog-slider::before { transform: translateX(16px); }
+
+  /* Progress */
+  .prog-wrap { margin-bottom: 16px; }
+  .prog-meta { display: flex; justify-content: space-between; font-size: 12px; color: #888; margin-bottom: 6px; }
+  .prog-track { height: 4px; background: #e5e5e3; border-radius: 2px; overflow: hidden; }
+  .prog-fill { height: 100%; border-radius: 2px; background: #185FA5; transition: width 0.4s ease; }
+
+  /* Tier badge */
+  .tier-badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 5px; margin-bottom: 10px; }
+  .t-easy { background: #EAF3DE; color: #3B6D11; }
+  .t-med { background: #FEF3C7; color: #92400E; }
+  .t-hard { background: #FEE2E2; color: #991B1B; }
+  .t-expert { background: #EDE9FE; color: #5B21B6; }
+
+  /* Question */
+  .q-card { background: #fff; border: 1px solid #e5e5e3; border-radius: 14px; padding: 24px; margin-bottom: 12px; }
+  .q-num { font-size: 12px; color: #aaa; margin-bottom: 8px; }
+  .q-text { font-size: 20px; font-weight: 500; color: #1a1a18; line-height: 1.55; }
+
+  /* Host answer */
+  .host-ans { display: none; padding: 10px 14px; border-radius: 8px; font-size: 14px; font-weight: 600; margin-bottom: 12px; }
+  .host-ans.show { display: block; }
+  .ha-true { background: #EAF3DE; color: #27500A; border: 1px solid #c6e8a4; }
+  .ha-false { background: #FEE2E2; color: #7F1D1D; border: 1px solid #fca5a5; }
+
+  /* Answer buttons */
+  .ans-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+  .ans-btn { padding: 18px 12px; border-radius: 10px; border: 1.5px solid #e5e5e3; background: #fff; cursor: pointer; font-size: 16px; font-weight: 600; transition: all 0.15s; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .ans-btn .ico { font-size: 30px; line-height: 1; }
+  .ans-btn .sub { font-size: 11px; color: #888; font-weight: 400; }
+  .ans-btn:hover:not(:disabled) { background: #f5f5f4; border-color: #bbb; }
+  .ans-btn:disabled { cursor: default; }
+  .ans-btn.correct { background: #EAF3DE; border-color: #3B6D11; color: #27500A; }
+  .ans-btn.correct .sub { color: #3B6D11; }
+  .ans-btn.wrong { background: #FEE2E2; border-color: #991B1B; color: #7F1D1D; }
+  .ans-btn.wrong .sub { color: #991B1B; }
+  .ans-btn.reveal-correct { background: #EAF3DE; border-color: #3B6D11; color: #27500A; }
+
+  /* Result + reveal */
+  .result-badge { display: none; text-align: center; font-size: 18px; font-weight: 600; padding: 12px; border-radius: 10px; margin-bottom: 10px; }
+  .result-badge.show { display: block; }
+  .rb-c { background: #EAF3DE; color: #27500A; }
+  .rb-w { background: #FEE2E2; color: #7F1D1D; }
+  .reveal-panel { display: none; background: #f9f9f8; border: 1px solid #e5e5e3; border-radius: 10px; padding: 14px 16px; font-size: 13px; color: #555; line-height: 1.7; margin-bottom: 10px; }
+  .reveal-panel.show { display: block; }
+  .reveal-panel strong { color: #1a1a18; }
+
+  .next-btn { display: none; width: 100%; padding: 13px; background: #1a1a18; color: #fff; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; transition: opacity 0.15s; }
+  .next-btn.show { display: block; }
+  .next-btn:hover { opacity: 0.85; }
+
+  /* End */
+  .end-wrap { text-align: center; padding: 2rem 0; }
+  .end-wrap h2 { font-size: 28px; font-weight: 600; color: #1a1a18; margin-bottom: 6px; }
+  .end-wrap .end-sub { font-size: 15px; color: #6b6b67; margin-bottom: 1.5rem; line-height: 1.6; }
+  .score-big { font-size: 56px; font-weight: 700; color: #185FA5; margin: 0.5rem 0 1rem; }
+  .score-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 1.5rem; }
+  .sc { background: #f5f5f4; border-radius: 10px; padding: 12px 8px; }
+  .sc-num { font-size: 24px; font-weight: 600; color: #1a1a18; }
+  .sc-lbl { font-size: 12px; color: #888; margin-top: 2px; }
+  .restart-btn { padding: 12px 36px; background: #fff; border: 1.5px solid #e5e5e3; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; color: #1a1a18; }
+  .restart-btn:hover { background: #f5f5f4; }
+</style>
+</head>
+<body>
+<div class="game">
+
+  <!-- INTRO -->
+  <div id="screen-intro" class="screen active">
+    <div class="intro-hero">
+      <h1>🙌 Heads or Tails</h1>
+      <p class="sub">20 tech true/false questions. Starting easy — getting brutal. Wrong answer? Sit down. Last one standing wins.</p>
+    </div>
+    <div class="rules-grid">
+      <div class="rule-card"><strong>🙌 Hands on HEAD</strong><span>You think the statement is TRUE</span></div>
+      <div class="rule-card"><strong>🫶 Hands on HIPS</strong><span>You think the statement is FALSE</span></div>
+      <div class="rule-card"><strong>20 questions</strong><span>Warm up → Expert. Difficulty ramps up.</span></div>
+      <div class="rule-card"><strong>Wrong answer?</strong><span>Sit down. Last standing wins!</span></div>
+    </div>
+    <div class="host-row">
+      <label class="tog">
+        <input type="checkbox" id="host-cb" onchange="toggleHost(this.checked)">
+        <span class="tog-slider"></span>
+      </label>
+      <span>Host mode — reveal answer before the room sees it</span>
+    </div>
+    <button class="start-btn" onclick="startGame()">Start the game →</button>
+  </div>
+
+  <!-- QUESTION -->
+  <div id="screen-question" class="screen">
+    <div class="prog-wrap">
+      <div class="prog-meta">
+        <span id="q-counter">Question 1 of 20</span>
+        <span id="score-display">Score: 0</span>
+      </div>
+      <div class="prog-track"><div class="prog-fill" id="prog-fill" style="width:5%"></div></div>
+    </div>
+    <span class="tier-badge t-easy" id="tier-badge">Warm up</span>
+    <div class="q-card">
+      <div class="q-num" id="q-num">Q1</div>
+      <div class="q-text" id="q-text"></div>
+    </div>
+    <div class="host-ans" id="host-ans"></div>
+    <div class="ans-row">
+      <button class="ans-btn" id="btn-true" onclick="selectAnswer(true)">
+        <span class="ico">🙌</span>
+        <span>TRUE</span>
+        <span class="sub">Hands on head</span>
+      </button>
+      <button class="ans-btn" id="btn-false" onclick="selectAnswer(false)">
+        <span class="ico">🫶</span>
+        <span>FALSE</span>
+        <span class="sub">Hands on hips</span>
+      </button>
+    </div>
+    <div class="result-badge" id="result-badge"></div>
+    <div class="reveal-panel" id="reveal-panel"></div>
+    <button class="next-btn" id="next-btn" onclick="nextQuestion()">Next →</button>
+  </div>
+
+  <!-- END -->
+  <div id="screen-end" class="screen">
+    <div class="end-wrap">
+      <h2>That's a wrap! 🎉</h2>
+      <div class="score-big" id="final-score">0/20</div>
+      <div class="score-grid">
+        <div class="sc"><div class="sc-num" id="end-correct">0</div><div class="sc-lbl">Correct</div></div>
+        <div class="sc"><div class="sc-num" id="end-wrong">0</div><div class="sc-lbl">Wrong</div></div>
+        <div class="sc"><div class="sc-num" id="end-pct">0%</div><div class="sc-lbl">Accuracy</div></div>
+      </div>
+      <p class="end-sub" id="end-msg"></p>
+      <button class="restart-btn" onclick="restart()">Play again</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const questions = [
+  // WARM UP (1-5)
+  {q:"The first computer bug was an actual insect found inside a computer.", a:true, tier:"Warm up", tc:"t-easy",
+   explain:"In 1947, Grace Hopper's team found a moth causing faults in the Harvard Mark II. They taped it into the logbook — the original 'bug report'."},
+  {q:"Google was originally called 'Backrub'.", a:true, tier:"Warm up", tc:"t-easy",
+   explain:"Larry Page and Sergey Brin named their search engine Backrub in 1996, before rebranding to Google in 1997."},
+  {q:"Wi-Fi stands for 'Wireless Fidelity'.", a:false, tier:"Warm up", tc:"t-easy",
+   explain:"Wi-Fi doesn't officially stand for anything. It was coined by a branding agency — never a real acronym, despite the popular belief."},
+  {q:"Amazon was originally launched as an online bookstore.", a:true, tier:"Warm up", tc:"t-easy",
+   explain:"Jeff Bezos launched Amazon in 1994 selling books only, before expanding into the everything store we know today."},
+  {q:"The first iPhone was released in 2008.", a:false, tier:"Warm up", tc:"t-easy",
+   explain:"The original iPhone launched in June 2007. The iPhone 3G launched in 2008 and is often confused with the first model."},
+
+  // GETTING GOING (6-10)
+  {q:"Python is named after the Monty Python comedy group, not the snake.", a:true, tier:"Getting going", tc:"t-med",
+   explain:"Guido van Rossum was reading Monty Python scripts while writing the language and wanted a short, unique name."},
+  {q:"Linux powers the majority of the world's public web servers.", a:true, tier:"Getting going", tc:"t-med",
+   explain:"Over 90% of public web servers run Linux. It also underpins Android and most major cloud platforms including AWS and Google Cloud."},
+  {q:"The QWERTY keyboard layout was designed to slow typists down to prevent typewriter jams.", a:false, tier:"Getting going", tc:"t-med",
+   explain:"This is a popular myth. QWERTY was designed to separate commonly paired letters to reduce mechanical jams — speed was still the goal."},
+  {q:"NASA's Apollo 11 guidance computer had less processing power than a modern USB charging adapter.", a:true, tier:"Getting going", tc:"t-med",
+   explain:"The Apollo Guidance Computer had 4KB of RAM and 72KB of storage. A typical USB-C charger controller today vastly outperforms it."},
+  {q:"The '@' symbol was chosen for email addresses because it was the rarest character on the keyboard.", a:false, tier:"Getting going", tc:"t-med",
+   explain:"Ray Tomlinson chose '@' in 1971 because it logically meant 'at' — user at host — and crucially, it didn't appear in anyone's name, avoiding ambiguity."},
+
+  // TRICKY (11-15)
+  {q:"HTTP status code 418 officially means 'I'm a teapot'.", a:true, tier:"Tricky", tc:"t-hard",
+   explain:"RFC 2324, an April Fool's joke from 1998, defined the Hyper Text Coffee Pot Control Protocol. 418 is a real, recognised HTTP status code."},
+  {q:"Git was created by Linus Torvalds.", a:true, tier:"Tricky", tc:"t-hard",
+   explain:"After a dispute with BitKeeper in 2005, Torvalds wrote Git himself in roughly 10 days. He also created Linux."},
+  {q:"JavaScript and Java share the same underlying codebase.", a:false, tier:"Tricky", tc:"t-hard",
+   explain:"They are entirely unrelated. JavaScript was created by Brendan Eich at Netscape in 1995. The name was a marketing decision to ride Java's popularity."},
+  {q:"IPv4 supports approximately 4.3 billion unique addresses.", a:true, tier:"Tricky", tc:"t-hard",
+   explain:"IPv4 uses 32-bit addresses giving 2³² = 4,294,967,296 possible addresses. We exhausted the global pool in 2011, accelerating IPv6 adoption."},
+  {q:"A byte has always consisted of exactly 8 bits since computers were invented.", a:false, tier:"Tricky", tc:"t-hard",
+   explain:"Early computers used 6 or 7-bit bytes. The 8-bit byte became the dominant standard during the 1960s but wasn't universally formalised until later."},
+
+  // EXPERT (16-20)
+  {q:"Moore's Law states that transistor count doubles every 18 months.", a:false, tier:"Expert", tc:"t-expert",
+   explain:"Gordon Moore's original 1965 paper said doubling every year, revised in 1975 to every two years. The '18 months' version was a paraphrase by Intel's David House — never Moore's own words."},
+  {q:"The Morris Worm of 1988 was the first malicious program to spread via the internet.", a:true, tier:"Expert", tc:"t-expert",
+   explain:"Released by Robert Tappan Morris, it infected around 6,000 machines — roughly 10% of the internet. Morris became the first person convicted under the Computer Fraud and Abuse Act."},
+  {q:"SHA-256 produces a 256-character output string.", a:false, tier:"Expert", tc:"t-expert",
+   explain:"SHA-256 produces a 256-bit hash — 32 bytes — displayed as a 64-character hexadecimal string. Bits and characters are not the same."},
+  {q:"Kubernetes was originally developed by Facebook.", a:false, tier:"Expert", tc:"t-expert",
+   explain:"Kubernetes was developed by Google, inspired by their internal system called Borg. It was open-sourced in 2014. Facebook's container work led to a separate project."},
+  {q:"The Tor network was originally developed by the US Naval Research Laboratory.", a:true, tier:"Expert", tc:"t-expert",
+   explain:"Onion routing — the core technology behind Tor — was developed at the US Naval Research Laboratory in the mid-1990s to protect US intelligence communications online."},
+];
+
+let current=0, score=0, wrong=0, answered=false, hostMode=false;
+
+function toggleHost(on){ hostMode=on; }
+
+function startGame(){
+  current=0; score=0; wrong=0;
+  showScreen('question');
+  loadQuestion();
+}
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+id).classList.add('active');
+}
+
+function loadQuestion(){
+  answered=false;
+  const q=questions[current];
+  document.getElementById('q-counter').textContent=`Question ${current+1} of ${questions.length}`;
+  document.getElementById('score-display').textContent=`Score: ${score}`;
+  document.getElementById('prog-fill').style.width=((current/questions.length)*100)+'%';
+  document.getElementById('q-num').textContent=`Q${current+1}`;
+  document.getElementById('q-text').textContent=q.q;
+  const badge=document.getElementById('tier-badge');
+  badge.textContent=q.tier; badge.className='tier-badge '+q.tc;
+
+  const ha=document.getElementById('host-ans');
+  if(hostMode){
+    ha.className='host-ans show '+(q.a?'ha-true':'ha-false');
+    ha.textContent='HOST: Answer is '+(q.a?'✓ TRUE — hands on head':'✗ FALSE — hands on hips');
+  } else { ha.className='host-ans'; }
+
+  ['btn-true','btn-false'].forEach(id=>{
+    const b=document.getElementById(id);
+    b.className='ans-btn'; b.disabled=false;
+  });
+  document.getElementById('result-badge').className='result-badge';
+  document.getElementById('result-badge').textContent='';
+  document.getElementById('reveal-panel').className='reveal-panel';
+  document.getElementById('reveal-panel').innerHTML='';
+  document.getElementById('next-btn').className='next-btn';
+}
+
+function selectAnswer(val){
+  if(answered) return;
+  answered=true;
+  const q=questions[current];
+  const correct=(val===q.a);
+  if(correct) score++; else wrong++;
+  document.getElementById('btn-true').disabled=true;
+  document.getElementById('btn-false').disabled=true;
+  if(val===true) document.getElementById('btn-true').classList.add(correct?'correct':'wrong');
+  else document.getElementById('btn-false').classList.add(correct?'correct':'wrong');
+  if(!correct){
+    if(q.a===true) document.getElementById('btn-true').classList.add('reveal-correct');
+    else document.getElementById('btn-false').classList.add('reveal-correct');
+  }
+  const rb=document.getElementById('result-badge');
+  rb.className='result-badge show '+(correct?'rb-c':'rb-w');
+  rb.textContent=correct?'✓ Correct! Stay standing.':'✗ Wrong — take a seat!';
+  const rp=document.getElementById('reveal-panel');
+  rp.className='reveal-panel show';
+  rp.innerHTML='<strong>The detail:</strong> '+q.explain;
+  const nb=document.getElementById('next-btn');
+  nb.className='next-btn show';
+  nb.textContent=current<questions.length-1?'Next question →':'See results';
+}
+
+function nextQuestion(){
+  current++;
+  if(current>=questions.length){ showEnd(); return; }
+  loadQuestion();
+}
+
+function showEnd(){
+  showScreen('end');
+  const pct=Math.round((score/questions.length)*100);
+  document.getElementById('final-score').textContent=score+' / '+questions.length;
+  document.getElementById('end-correct').textContent=score;
+  document.getElementById('end-wrong').textContent=wrong;
+  document.getElementById('end-pct').textContent=pct+'%';
+  let msg='';
+  if(pct>=90) msg="Outstanding. You'd survive any tech pub quiz going.";
+  else if(pct>=70) msg="Solid effort. Clearly pays attention in the all-hands.";
+  else if(pct>=50) msg="A respectable showing. The expert round was properly brutal.";
+  else msg="The questions got spicy. Blame the post-lunch brain fog.";
+  document.getElementById('end-msg').textContent=msg;
+}
+
+function restart(){ showScreen('intro'); }
+</script>
+</body>
+</html>
