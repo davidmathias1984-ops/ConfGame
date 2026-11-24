@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Heads or Tails — Christmas Tech Quiz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Mountains+of+Christmas:wght@700&family=Nunito:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --red: #C8102E; --red-dk: #8E0B20; --green: #0F5132; --green-dk: #08311F; --green-lt: #1E7B4F;
+    --gold: #F2C14E; --cream: #FFF8EC; --ink: #2B1D14; --muted: #7A6A5C; --snow: #ffffff;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    min-height: 100vh; color: var(--ink);
+    background:
+      radial-gradient(ellipse at top, rgba(242,193,78,0.18), transparent 60%),
+      linear-gradient(180deg, #0B3D27 0%, var(--green-dk) 70%, #051F14 100%);
+    background-attachment: fixed;
+    display: flex; align-items: flex-start; justify-content: center;
+    padding: 64px 16px 48px; overflow-x: hidden;
+  }
+  #snow { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+  .game { position: relative; z-index: 2; width: 100%; max-width: 660px; }
+  .screen { display: none; }
+  .screen.active { display: block; animation: pop-in .45s cubic-bezier(.2,1.4,.4,1); }
+  @keyframes pop-in { from { opacity: 0; transform: translateY(14px) scale(.98); } to { opacity: 1; transform: none; } }
+
+  /* Fairy lights */
+  .lights { position: fixed; top: 0; left: 0; right: 0; height: 52px; z-index: 3; pointer-events: none; display: flex; justify-content: space-around; padding: 0 8px; }
+  .lights::before { content: ''; position: absolute; left: -2%; right: -2%; top: -30px; height: 50px; border-bottom: 2px solid #233; border-radius: 0 0 50% 50% / 0 0 100% 100%; }
+  .bulb { position: relative; width: 12px; height: 20px; border-radius: 50%; margin-top: 14px; animation: glow 1.6s ease-in-out infinite; }
+  .bulb::before { content: ''; position: absolute; top: -5px; left: 3px; width: 6px; height: 6px; background: #333; border-radius: 2px; }
+  .bulb:nth-child(4n+1) { background: #ff3b4e; --c: #ff3b4e; }
+  .bulb:nth-child(4n+2) { background: #ffd34e; --c: #ffd34e; animation-delay: .4s; }
+  .bulb:nth-child(4n+3) { background: #3bd16f; --c: #3bd16f; animation-delay: .8s; }
+  .bulb:nth-child(4n+4) { background: #4ec3ff; --c: #4ec3ff; animation-delay: 1.2s; }
+  .bulb:nth-child(odd) { margin-top: 18px; }
+  @keyframes glow { 0%,100% { box-shadow: 0 0 14px 4px var(--c); opacity: 1; } 50% { box-shadow: 0 0 2px 0 var(--c); opacity: .45; } }
+
+  /* Card base */
+  .panel { background: var(--cream); border-radius: 18px; padding: 22px 24px; box-shadow: 0 10px 30px rgba(0,0,0,.35); position: relative; }
+  .panel.snowcap::before {
+    content: ''; position: absolute; left: 0; right: 0; top: -12px; height: 26px; border-radius: 18px 18px 0 0; clip-path: inset(0 0 0 0 round 18px 18px 0 0);
+    background:
+      linear-gradient(#fff, #fff) bottom / 100% 12px no-repeat,
+      radial-gradient(circle at 20% 100%, #fff 16px, transparent 17px),
+      radial-gradient(circle at 57% 100%, #fff 15px, transparent 16px),
+      radial-gradient(circle at 76% 100%, #fff 14px, transparent 15px),
+      radial-gradient(circle at 10% 100%, #fff 14px, transparent 15px),
+      radial-gradient(circle at 28% 100%, #fff 18px, transparent 19px),
+      radial-gradient(circle at 48% 100%, #fff 13px, transparent 14px),
+      radial-gradient(circle at 66% 100%, #fff 17px, transparent 18px),
+      radial-gradient(circle at 86% 100%, #fff 15px, transparent 16px);
+    filter: drop-shadow(0 2px 2px rgba(0,0,0,.08));
+  }
+
+  /* Intro */
+  .intro-hero { text-align: center; padding: 1rem 0 1.5rem; color: var(--cream); }
+  .intro-hero .tree { font-size: 54px; display: inline-block; animation: sway 3s ease-in-out infinite; transform-origin: bottom center; }
+  @keyframes sway { 0%,100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); } }
+  .intro-hero h1 { font-family: 'Mountains of Christmas', Georgia, serif; font-size: 52px; line-height: 1.05; color: var(--gold); text-shadow: 0 3px 0 var(--red-dk), 0 6px 18px rgba(0,0,0,.4); margin: 6px 0 10px; }
+  .intro-hero .kicker { display: inline-block; font-size: 12px; letter-spacing: .18em; text-transform: uppercase; font-weight: 800; background: var(--red); color: #fff; padding: 5px 12px; border-radius: 999px; margin-bottom: 4px; }
+  .intro-hero .sub { font-size: 16px; color: #E7DCC8; line-height: 1.7; max-width: 470px; margin: 0 auto; }
+  .rules-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 0 0 16px; }
+  .rule-card { background: var(--cream); border-radius: 14px; padding: 16px; box-shadow: 0 6px 16px rgba(0,0,0,.25); border-top: 5px solid var(--red); transition: transform .2s; }
+  .rule-card:nth-child(2) { border-top-color: var(--green-lt); }
+  .rule-card:nth-child(3) { border-top-color: var(--gold); }
+  .rule-card:nth-child(4) { border-top-color: #4ec3ff; }
+  .rule-card:hover { transform: translateY(-3px) rotate(-.5deg); }
+  .rule-card strong { display: block; font-size: 15px; font-weight: 800; color: var(--ink); margin-bottom: 4px; }
+  .rule-card span { font-size: 13px; color: var(--muted); line-height: 1.5; }
+
+  .settings { display: flex; flex-wrap: wrap; gap: 10px 22px; margin-bottom: 6px; }
+  .host-row { display: flex; align-items: center; gap: 10px; font-size: 13px; color: #E7DCC8; }
+  .tog { position: relative; display: inline-block; width: 40px; height: 22px; flex-shrink: 0; }
+  .tog input { opacity: 0; width: 0; height: 0; }
+  .tog-slider { position: absolute; inset: 0; background: rgba(255,255,255,.25); border-radius: 11px; transition: .2s; cursor: pointer; }
+  .tog input:checked + .tog-slider { background: var(--red); }
+  .tog input:focus-visible + .tog-slider { outline: 2px solid var(--gold); outline-offset: 2px; }
+  .tog-slider::before { content: ''; position: absolute; height: 16px; width: 16px; left: 3px; bottom: 3px; background: #fff; border-radius: 50%; transition: .2s; }
+  .tog input:checked + .tog-slider::before { transform: translateX(18px); }
+
+  .start-btn {
+    display: block; width: 100%; padding: 18px; margin-top: 16px; border: none; border-radius: 14px; cursor: pointer;
+    font-family: 'Nunito', sans-serif; font-size: 18px; font-weight: 800; color: #fff; letter-spacing: .02em;
+    background: repeating-linear-gradient(-45deg, var(--red) 0 18px, #E0273F 18px 36px);
+    background-size: 51px 51px; animation: stripes 1.4s linear infinite;
+    box-shadow: 0 5px 0 var(--red-dk), 0 10px 22px rgba(0,0,0,.35); transition: transform .1s, box-shadow .1s;
+  }
+  .start-btn:hover { transform: translateY(-2px); }
+  .start-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 var(--red-dk); }
+  @keyframes stripes { to { background-position: 51px 0; } }
+  .keys-hint { text-align: center; font-size: 12px; color: rgba(231,220,200,.6); margin-top: 12px; }
+  kbd { font-family: inherit; background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.2); border-radius: 4px; padding: 1px 6px; font-size: 11px; }
+
+  /* Progress */
+  .prog-wrap { margin-bottom: 14px; color: #E7DCC8; }
+  .prog-meta { display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: 600; margin-bottom: 8px; }
+  .score-pill { background: var(--gold); color: var(--ink); padding: 3px 12px; border-radius: 999px; font-weight: 800; transition: transform .2s; }
+  .score-pill.bump { animation: bump .5s; }
+  @keyframes bump { 40% { transform: scale(1.3) rotate(-6deg); } }
+  .prog-track { position: relative; height: 14px; background: rgba(255,255,255,.12); border-radius: 7px; overflow: visible; }
+  .prog-fill { height: 100%; border-radius: 7px; transition: width .5s ease;
+    background: repeating-linear-gradient(-45deg, #fff 0 8px, var(--red) 8px 16px); box-shadow: 0 0 10px rgba(255,255,255,.3); }
+  .prog-sleigh { position: absolute; top: 50%; font-size: 22px; transform: translate(-50%, -58%) scaleX(-1); transition: left .5s ease; }
+
+  /* Tier badge */
+  .tier-badge { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 800; padding: 5px 12px; border-radius: 999px; margin-bottom: 14px; letter-spacing: .03em; }
+  .t-easy { background: #D7F0DF; color: var(--green); }
+  .t-med { background: #FFF0C7; color: #8A5A00; }
+  .t-hard { background: #FFD9DE; color: var(--red-dk); }
+  .t-expert { background: #E6DDFB; color: #4B238F; }
+
+  /* Question */
+  .q-card { margin-bottom: 14px; padding: 28px 24px 24px; }
+  .q-card.shake { animation: shake .45s; }
+  @keyframes shake { 20%,60% { transform: translateX(-8px); } 40%,80% { transform: translateX(8px); } }
+  .q-num { font-family: 'Mountains of Christmas', Georgia, serif; font-size: 22px; color: var(--red); margin-bottom: 6px; }
+  .q-text { font-size: 21px; font-weight: 600; line-height: 1.5; }
+  .q-deco { position: absolute; right: 16px; bottom: 10px; font-size: 26px; opacity: .18; }
+
+  /* Host answer */
+  .host-ans { display: none; padding: 10px 14px; border-radius: 10px; font-size: 14px; font-weight: 800; margin-bottom: 14px; border: 2px dashed; }
+  .host-ans.show { display: block; }
+  .ha-true { background: #D7F0DF; color: var(--green); border-color: var(--green-lt); }
+  .ha-false { background: #FFD9DE; color: var(--red-dk); border-color: var(--red); }
+
+  /* Answer buttons */
+  .ans-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+  .ans-btn {
+    position: relative; padding: 20px 12px 16px; border-radius: 16px; border: none; cursor: pointer;
+    font-family: 'Nunito', sans-serif; font-size: 18px; font-weight: 800; color: #fff;
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    transition: transform .12s, box-shadow .12s, filter .2s, opacity .2s;
+  }
+  #btn-true { background: linear-gradient(180deg, var(--green-lt), var(--green)); box-shadow: 0 5px 0 var(--green-dk), 0 10px 20px rgba(0,0,0,.3); }
+  #btn-false { background: linear-gradient(180deg, #E0273F, var(--red)); box-shadow: 0 5px 0 var(--red-dk), 0 10px 20px rgba(0,0,0,.3); }
+  .ans-btn::after { /* gift ribbon */
+    content: ''; position: absolute; inset: 0; border-radius: 16px; pointer-events: none;
+    background: linear-gradient(90deg, transparent calc(50% - 5px), rgba(242,193,78,.35) calc(50% - 5px) calc(50% + 5px), transparent calc(50% + 5px));
+  }
+  .ans-btn > * { position: relative; z-index: 1; }
+  .ans-btn .ico { font-size: 34px; line-height: 1; filter: drop-shadow(0 2px 2px rgba(0,0,0,.25)); }
+  .ans-btn .sub { font-size: 12px; font-weight: 600; opacity: .85; }
+  .ans-btn:hover:not(:disabled) { transform: translateY(-3px) rotate(-1deg); }
+  #btn-false:hover:not(:disabled) { transform: translateY(-3px) rotate(1deg); }
+  .ans-btn:active:not(:disabled) { transform: translateY(3px); }
+  .ans-btn:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+  .ans-btn:disabled { cursor: default; }
+  .ans-row.done .ans-btn:not(.correct):not(.reveal-correct):not(.wrong) { opacity: .35; filter: grayscale(.6); }
+  .ans-btn.correct, .ans-btn.reveal-correct { outline: 4px solid var(--gold); outline-offset: 3px; animation: wiggle .6s; }
+  .ans-btn.wrong { filter: grayscale(.7) brightness(.8); }
+  .ans-btn .tag { position: absolute; top: -12px; right: -8px; z-index: 2; background: var(--gold); color: var(--ink); font-size: 11px; padding: 3px 9px; border-radius: 999px; box-shadow: 0 2px 6px rgba(0,0,0,.25); }
+  @keyframes wiggle { 25% { transform: rotate(-3deg) scale(1.04); } 75% { transform: rotate(3deg) scale(1.04); } }
+
+  /* Result + reveal */
+  .result-badge { display: none; text-align: center; font-family: 'Mountains of Christmas', Georgia, serif; font-size: 30px; padding: 10px; border-radius: 14px; margin-bottom: 12px; }
+  .result-badge.show { display: block; animation: pop-in .4s cubic-bezier(.2,1.6,.4,1); }
+  .rb-c { background: var(--gold); color: var(--green-dk); }
+  .rb-w { background: #2A2A2A; color: #fff; }
+  .reveal-panel { display: none; font-size: 14px; color: #4A3B30; line-height: 1.7; margin-bottom: 12px; padding: 16px 18px 16px 52px; }
+  .reveal-panel.show { display: block; }
+  .reveal-panel::before { content: '📜'; position: absolute; left: 16px; top: 14px; font-size: 22px; }
+  .reveal-panel strong { color: var(--red); }
+
+  .next-btn { display: none; width: 100%; padding: 15px; border: 2px solid var(--gold); border-radius: 14px; background: transparent; color: var(--gold); font-family: 'Nunito', sans-serif; font-size: 16px; font-weight: 800; cursor: pointer; transition: background .15s, color .15s; }
+  .next-btn.show { display: block; }
+  .next-btn:hover, .next-btn:focus-visible { background: var(--gold); color: var(--ink); outline: none; }
+
+  /* End */
+  .end-wrap { text-align: center; padding: 30px 24px 28px; }
+  .end-wrap .gift { font-size: 60px; display: inline-block; animation: hop 1.2s ease-in-out infinite; }
+  @keyframes hop { 0%,100% { transform: translateY(0); } 30% { transform: translateY(-14px) rotate(-6deg); } 60% { transform: translateY(0) rotate(4deg); } }
+  .end-wrap h2 { font-family: 'Mountains of Christmas', Georgia, serif; font-size: 44px; color: var(--red); margin: 4px 0; }
+  .score-big { font-size: 60px; font-weight: 800; color: var(--green); margin: 4px 0 16px; }
+  .score-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 18px; }
+  .sc { background: #fff; border: 2px dashed #E8D9BF; border-radius: 14px; padding: 12px 8px; }
+  .sc-num { font-size: 26px; font-weight: 800; }
+  .sc-lbl { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .end-sub { font-size: 16px; color: var(--muted); margin-bottom: 20px; line-height: 1.6; }
+  .restart-btn { padding: 13px 40px; border: none; border-radius: 12px; background: var(--green); color: #fff; font-family: 'Nunito', sans-serif; font-size: 15px; font-weight: 800; cursor: pointer; box-shadow: 0 4px 0 var(--green-dk); }
+  .restart-btn:hover { background: var(--green-lt); }
+
+  /* Particles */
+  .particle { position: fixed; z-index: 10; pointer-events: none; font-size: 22px; will-change: transform, opacity; }
+
+  @media (max-width: 520px) {
+    .intro-hero h1 { font-size: 42px; }
+    .rules-grid { grid-template-columns: 1fr; }
+    .q-text { font-size: 18px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+    #snow { display: none; }
+  }
+</style>
+</head>
+<body>
+<canvas id="snow" aria-hidden="true"></canvas>
+<div class="lights" id="lights" aria-hidden="true"></div>
+
+<div class="game">
+
+  <!-- INTRO -->
+  <div id="screen-intro" class="screen active">
+    <div class="intro-hero">
+      <div class="tree">🎄</div><br>
+      <span class="kicker">Christmas Edition</span>
+      <h1>Heads or Tails</h1>
+      <p class="sub">28 true/false questions — tech trivia with a sprinkle of Christmas. Starts as gentle as a mince pie — ends as brutal as Boxing Day sales. Wrong answer? Sit down. Last elf standing wins.</p>
+    </div>
+    <div class="rules-grid">
+      <div class="rule-card"><strong>🙌 Hands on HEAD</strong><span>You think the statement is TRUE</span></div>
+      <div class="rule-card"><strong>🫶 Hands on HIPS</strong><span>You think the statement is FALSE</span></div>
+      <div class="rule-card"><strong>🎁 28 questions</strong><span>Four rounds, from Warm Mince Pie to Krampus Mode.</span></div>
+      <div class="rule-card"><strong>🥶 Wrong answer?</strong><span>Coal for you — sit down. Last one standing wins!</span></div>
+    </div>
+    <div class="settings">
+      <label class="host-row">
+        <span class="tog"><input type="checkbox" id="host-cb" onchange="toggleHost(this.checked)"><span class="tog-slider"></span></span>
+        <span>🎅 Host mode — show the answer before the room sees it</span>
+      </label>
+      <label class="host-row">
+        <span class="tog"><input type="checkbox" id="sound-cb" checked onchange="soundOn=this.checked"><span class="tog-slider"></span></span>
+        <span>🔔 Sleigh bells</span>
+      </label>
+    </div>
+    <button class="start-btn" onclick="startGame()">Let it snow — start the game ❄️</button>
+    <p class="keys-hint">Host shortcuts: <kbd>T</kbd> true · <kbd>F</kbd> false · <kbd>Enter</kbd> next</p>
+  </div>
+
+  <!-- QUESTION -->
+  <div id="screen-question" class="screen">
+    <div class="prog-wrap">
+      <div class="prog-meta">
+        <span id="q-counter">Question 1 of 28</span>
+        <span class="score-pill" id="score-display">⭐ 0</span>
+      </div>
+      <div class="prog-track">
+        <div class="prog-fill" id="prog-fill" style="width:5%"></div>
+        <span class="prog-sleigh" id="prog-sleigh" style="left:5%">🛷</span>
+      </div>
+    </div>
+    <span class="tier-badge t-easy" id="tier-badge">Warm up</span>
+    <div class="panel snowcap q-card" id="q-card">
+      <div class="q-num" id="q-num">Q1</div>
+      <div class="q-text" id="q-text"></div>
+      <span class="q-deco" id="q-deco" aria-hidden="true">❄️</span>
+    </div>
+    <div class="host-ans" id="host-ans"></div>
+    <div class="ans-row" id="ans-row">
+      <button class="ans-btn" id="btn-true" onclick="selectAnswer(true)">
+        <span class="ico">🙌</span>
+        <span>TRUE</span>
+        <span class="sub">Hands on head</span>
+      </button>
+      <button class="ans-btn" id="btn-false" onclick="selectAnswer(false)">
+        <span class="ico">🫶</span>
+        <span>FALSE</span>
+        <span class="sub">Hands on hips</span>
+      </button>
+    </div>
+    <div class="result-badge" id="result-badge" role="status"></div>
+    <div class="panel reveal-panel" id="reveal-panel"></div>
+    <button class="next-btn" id="next-btn" onclick="nextQuestion()">Next →</button>
+  </div>
+
+  <!-- END -->
+  <div id="screen-end" class="screen">
+    <div class="panel snowcap end-wrap">
+      <div class="gift">🎁</div>
+      <h2>That's a wrap!</h2>
+      <div class="score-big" id="final-score">0/28</div>
+      <div class="score-grid">
+        <div class="sc"><div class="sc-num" id="end-correct" style="color:var(--green)">0</div><div class="sc-lbl">🎄 Correct</div></div>
+        <div class="sc"><div class="sc-num" id="end-wrong" style="color:var(--red)">0</div><div class="sc-lbl">🪨 Coal</div></div>
+        <div class="sc"><div class="sc-num" id="end-pct">0%</div><div class="sc-lbl">⭐ Accuracy</div></div>
+      </div>
+      <p class="end-sub" id="end-msg"></p>
+      <button class="restart-btn" onclick="restart()">Play again 🔁</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const questions = [
+  // WARM UP (1-5)
+  {q:"The first computer bug was an actual insect found inside a computer.", a:true, tier:"Warm up", tc:"t-easy",
+   explain:"In 1947, Grace Hopper's team found a moth causing faults in the Harvard Mark II. They taped it into the logbook — the original 'bug report'."},
+  {q:"Google was originally called 'Backrub'.", a:true, tier:"Warm up", tc:"t-easy",
+   explain:"Larry Page and Sergey Brin named their search engine Backrub in 1996, before rebranding to Google in 1997."},
+  {q:"\u2018Home Alone\u2019 was released before 1995.", a:true, tier:"Warm up", tc:"t-easy", xmas:true,
+   explain:"It came out in November 1990. Macaulay Culkin's Kevin McCallister has been defending the house every Christmas since."},
+  {q:"Wi-Fi stands for 'Wireless Fidelity'.", a:false, tier:"Warm up", tc:"t-easy",
+   explain:"Wi-Fi doesn't officially stand for anything. It was coined by a branding agency — never a real acronym, despite the popular belief."},
+  {q:"Amazon was originally launched as an online bookstore.", a:true, tier:"Warm up", tc:"t-easy",
+   explain:"Jeff Bezos launched Amazon in 1994 selling books only, before expanding into the everything store we know today."},
+  {q:"The first iPhone was released in 2008.", a:false, tier:"Warm up", tc:"t-easy",
+   explain:"The original iPhone launched in June 2007. The iPhone 3G launched in 2008 and is often confused with the first model."},
+  {q:"Christmas Day is celebrated on 25 December in Australia.", a:true, tier:"Warm up", tc:"t-easy", xmas:true,
+   explain:"Same date, opposite season — it's mid-summer down under, so it's more beach and barbecue than roast and snow."},
+
+  // GETTING GOING (6-10)
+  {q:"Python is named after the Monty Python comedy group, not the snake.", a:true, tier:"Getting going", tc:"t-med",
+   explain:"Guido van Rossum was reading Monty Python scripts while writing the language and wanted a short, unique name."},
+  {q:"Rudolph had a red nose in the original 1939 story.", a:true, tier:"Getting going", tc:"t-med", xmas:true,
+   explain:"Robert L. May wrote Rudolph for the Montgomery Ward department store in 1939 — the shiny red nose was the whole point of the story from day one."},
+  {q:"Linux powers the majority of the world's public web servers.", a:true, tier:"Getting going", tc:"t-med",
+   explain:"Over 90% of public web servers run Linux. It also underpins Android and most major cloud platforms including AWS and Google Cloud."},
+  {q:"The QWERTY keyboard layout was designed to slow typists down to prevent typewriter jams.", a:false, tier:"Getting going", tc:"t-med",
+   explain:"This is a popular myth. QWERTY was designed to separate commonly paired letters to reduce mechanical jams — speed was still the goal."},
+  {q:"Boxing Day is a public holiday in the USA.", a:false, tier:"Getting going", tc:"t-med", xmas:true,
+   explain:"Boxing Day is a holiday in the UK, Ireland, Canada, Australia and much of the Commonwealth — but not in the US, where most people are back at work on 26 December."},
+  {q:"NASA's Apollo 11 guidance computer had less processing power than a modern USB charging adapter.", a:true, tier:"Getting going", tc:"t-med",
+   explain:"The Apollo Guidance Computer had 4KB of RAM and 72KB of storage. A typical USB-C charger controller today vastly outperforms it."},
+  {q:"The '@' symbol was chosen for email addresses because it was the rarest character on the keyboard.", a:false, tier:"Getting going", tc:"t-med",
+   explain:"Ray Tomlinson chose '@' in 1971 because it logically meant 'at' — user at host — and crucially, it didn't appear in anyone's name, avoiding ambiguity."},
+
+  // TRICKY (11-15)
+  {q:"HTTP status code 418 officially means 'I'm a teapot'.", a:true, tier:"Tricky", tc:"t-hard",
+   explain:"RFC 2324, an April Fool's joke from 1998, defined the Hyper Text Coffee Pot Control Protocol. 418 is a real, recognised HTTP status code."},
+  {q:"Excluding Rudolph, Santa traditionally has 8 reindeer.", a:true, tier:"Tricky", tc:"t-hard", xmas:true,
+   explain:"Dasher, Dancer, Prancer, Vixen, Comet, Cupid, Donner and Blitzen — all named in the 1823 poem 'A Visit from St. Nicholas'. Rudolph only joined the team in 1939."},
+  {q:"Git was created by Linus Torvalds.", a:true, tier:"Tricky", tc:"t-hard",
+   explain:"After a dispute with BitKeeper in 2005, Torvalds wrote Git himself in roughly 10 days. He also created Linux."},
+  {q:"JavaScript and Java share the same underlying codebase.", a:false, tier:"Tricky", tc:"t-hard",
+   explain:"They are entirely unrelated. JavaScript was created by Brendan Eich at Netscape in 1995. The name was a marketing decision to ride Java's popularity."},
+  {q:"IPv4 supports approximately 4.3 billion unique addresses.", a:true, tier:"Tricky", tc:"t-hard",
+   explain:"IPv4 uses 32-bit addresses giving 2³² = 4,294,967,296 possible addresses. We exhausted the global pool in 2011, accelerating IPv6 adoption."},
+  {q:"\u2018The Snowman\u2019 was first shown on UK TV before 1985.", a:true, tier:"Tricky", tc:"t-hard", xmas:true,
+   explain:"Raymond Briggs' The Snowman first aired on Channel 4 on Boxing Day 1982, and it has been shown every Christmas since."},
+  {q:"A byte has always consisted of exactly 8 bits since computers were invented.", a:false, tier:"Tricky", tc:"t-hard",
+   explain:"Early computers used 6 or 7-bit bytes. The 8-bit byte became the dominant standard during the 1960s but wasn't universally formalised until later."},
+
+  // EXPERT (16-20)
+  {q:"Moore's Law states that transistor count doubles every 18 months.", a:false, tier:"Expert", tc:"t-expert",
+   explain:"Gordon Moore's original 1965 paper said doubling every year, revised in 1975 to every two years. The '18 months' version was a paraphrase by Intel's David House — never Moore's own words."},
+  {q:"The first commercial Christmas card was sent before 1850.", a:true, tier:"Expert", tc:"t-expert", xmas:true,
+   explain:"Sir Henry Cole commissioned the first commercial Christmas card in 1843, illustrated by John Callcott Horsley. Around 1,000 were printed."},
+  {q:"The Morris Worm of 1988 was the first malicious program to spread via the internet.", a:true, tier:"Expert", tc:"t-expert",
+   explain:"Released by Robert Tappan Morris, it infected around 6,000 machines — roughly 10% of the internet. Morris became the first person convicted under the Computer Fraud and Abuse Act."},
+  {q:"SHA-256 produces a 256-character output string.", a:false, tier:"Expert", tc:"t-expert",
+   explain:"SHA-256 produces a 256-bit hash — 32 bytes — displayed as a 64-character hexadecimal string. Bits and characters are not the same."},
+  {q:"Wham!'s \u2018Last Christmas\u2019 was the UK Christmas No. 1 when it was first released.", a:false, tier:"Expert", tc:"t-expert", xmas:true,
+   explain:"In 1984 it stalled at No. 2, kept off the top by Band Aid's 'Do They Know It's Christmas?' (which George Michael also sang on). It finally became Christmas No. 1 in 2023, 39 years later."},
+  {q:"Kubernetes was originally developed by Facebook.", a:false, tier:"Expert", tc:"t-expert",
+   explain:"Kubernetes was developed by Google, inspired by their internal system called Borg. It was open-sourced in 2014. Facebook's container work led to a separate project."},
+  {q:"The Tor network was originally developed by the US Naval Research Laboratory.", a:true, tier:"Expert", tc:"t-expert",
+   explain:"Onion routing — the core technology behind Tor — was developed at the US Naval Research Laboratory in the mid-1990s to protect US intelligence communications online."},
+];
+
+// Festive round names + decorations per tier
+const tierStyle = {
+  "Warm up":       {label:"🥧 Round 1 · Warm Mince Pie", deco:"❄️"},
+  "Getting going": {label:"⛄ Round 2 · Snowball Fight",  deco:"⛄"},
+  "Tricky":        {label:"🦌 Round 3 · Reindeer Games",  deco:"🦌"},
+  "Expert":        {label:"😈 Round 4 · Krampus Mode",    deco:"🎅"},
+};
+const rightLines = ["Ho ho ho — correct!", "Sleigh-ed it!", "You're on the nice list!", "Tree-mendous!", "Snow way — spot on!", "Yule be fine!"];
+const wrongLines = ["Coal for you — sit down!", "Bah humbug! Take a seat.", "Oh deer… sit down.", "Snow chance! Sit down.", "Elf-inflicted wound. Sit!"];
+const pick = arr => arr[Math.floor(Math.random()*arr.length)];
+
+let current=0, score=0, wrong=0, answered=false, hostMode=false, soundOn=true;
+
+function toggleHost(on){ hostMode=on; }
+
+function startGame(){
+  current=0; score=0; wrong=0;
+  showScreen('question');
+  loadQuestion();
+  jingle([659,659,659]);
+}
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+id).classList.add('active');
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function setProgress(frac){
+  const pct=Math.max(frac*100, 3)+'%';
+  document.getElementById('prog-fill').style.width=pct;
+  document.getElementById('prog-sleigh').style.left=pct;
+}
+
+function loadQuestion(){
+  answered=false;
+  const q=questions[current];
+  const ts=tierStyle[q.tier];
+  document.getElementById('q-counter').textContent=`Question ${current+1} of ${questions.length}`;
+  document.getElementById('score-display').textContent=`⭐ ${score}`;
+  setProgress(current/questions.length);
+  document.getElementById('q-num').textContent=`Question ${current+1}`+(q.xmas?' · 🎄 Christmas special':'');
+  document.getElementById('q-text').textContent=q.q;
+  document.getElementById('q-deco').textContent=ts.deco;
+  const badge=document.getElementById('tier-badge');
+  badge.textContent=ts.label; badge.className='tier-badge '+q.tc;
+
+  const ha=document.getElementById('host-ans');
+  if(hostMode){
+    ha.className='host-ans show '+(q.a?'ha-true':'ha-false');
+    ha.textContent='🎅 HOST ONLY: Answer is '+(q.a?'✓ TRUE — hands on head':'✗ FALSE — hands on hips');
+  } else { ha.className='host-ans'; }
+
+  document.getElementById('ans-row').className='ans-row';
+  ['btn-true','btn-false'].forEach(id=>{
+    const b=document.getElementById(id);
+    b.className='ans-btn'; b.disabled=false;
+    const t=b.querySelector('.tag'); if(t) t.remove();
+  });
+  document.getElementById('q-card').classList.remove('shake');
+  const rb=document.getElementById('result-badge'); rb.className='result-badge'; rb.textContent='';
+  const rp=document.getElementById('reveal-panel'); rp.className='panel reveal-panel'; rp.innerHTML='';
+  document.getElementById('next-btn').className='next-btn';
+}
+
+function selectAnswer(val){
+  if(answered) return;
+  answered=true;
+  const q=questions[current];
+  const correct=(val===q.a);
+  if(correct) score++; else wrong++;
+  const chosen=document.getElementById(val?'btn-true':'btn-false');
+  const right=document.getElementById(q.a?'btn-true':'btn-false');
+  document.getElementById('btn-true').disabled=true;
+  document.getElementById('btn-false').disabled=true;
+  document.getElementById('ans-row').classList.add('done');
+  chosen.classList.add(correct?'correct':'wrong');
+  if(!correct) right.classList.add('reveal-correct');
+  const tag=document.createElement('span'); tag.className='tag'; tag.textContent='⭐ Answer';
+  right.appendChild(tag);
+
+  const rb=document.getElementById('result-badge');
+  rb.className='result-badge show '+(correct?'rb-c':'rb-w');
+  rb.textContent=correct?'🎄 '+pick(rightLines)+' Stay standing.':'🪨 '+pick(wrongLines);
+
+  const sd=document.getElementById('score-display');
+  sd.textContent=`⭐ ${score}`;
+  if(correct){ sd.classList.remove('bump'); void sd.offsetWidth; sd.classList.add('bump'); }
+
+  if(correct){ burst(chosen, ['⭐','❄️','🎁','✨','🎄']); jingle([784,988,1175]); }
+  else {
+    const c=document.getElementById('q-card'); c.classList.remove('shake'); void c.offsetWidth; c.classList.add('shake');
+    burst(chosen, ['🪨','🪨','💨'], 8); thud();
+  }
+
+  const rp=document.getElementById('reveal-panel');
+  rp.className='panel reveal-panel show';
+  rp.innerHTML='<strong>The detail:</strong> ';
+  rp.appendChild(document.createTextNode(q.explain));
+  const nb=document.getElementById('next-btn');
+  nb.className='next-btn show';
+  nb.textContent=current<questions.length-1?'Next question 🛷':'Unwrap the results 🎁';
+  setProgress((current+1)/questions.length);
+}
+
+function nextQuestion(){
+  current++;
+  if(current>=questions.length){ showEnd(); return; }
+  loadQuestion();
+}
+
+function showEnd(){
+  showScreen('end');
+  const pct=Math.round((score/questions.length)*100);
+  document.getElementById('final-score').textContent=score+' / '+questions.length;
+  document.getElementById('end-correct').textContent=score;
+  document.getElementById('end-wrong').textContent=wrong;
+  document.getElementById('end-pct').textContent=pct+'%';
+  let msg='';
+  if(pct>=90) msg="Outstanding. Santa's putting you in charge of the North Pole's IT. 🎅";
+  else if(pct>=70) msg="Solid effort. Firmly on the nice list — clearly pays attention in the all-hands.";
+  else if(pct>=50) msg="A respectable showing. Krampus Mode was properly brutal.";
+  else msg="The questions got spicy. Blame the mulled wine and the post-lunch brain fog. 🍷";
+  document.getElementById('end-msg').textContent=msg;
+  setTimeout(()=>{
+    const rect=document.querySelector('.end-wrap .gift');
+    for(let i=0;i<3;i++) setTimeout(()=>burst(rect, ['⭐','🎉','❄️','🎁','🎄','✨'], 22), i*350);
+    jingle([659,659,659,0,659,659,659,0,659,784,523,587,659]);
+  }, 250);
+}
+
+function restart(){ showScreen('intro'); }
+
+// Keyboard shortcuts for the host
+document.addEventListener('keydown', e=>{
+  if(!document.getElementById('screen-question').classList.contains('active')) return;
+  const k=e.key.toLowerCase();
+  if(!answered && (k==='t' || k==='arrowleft')) selectAnswer(true);
+  else if(!answered && (k==='f' || k==='arrowright')) selectAnswer(false);
+  else if(answered && (k==='enter' || k===' ' || k==='n')){ e.preventDefault(); nextQuestion(); }
+});
+
+/* ---------- Effects ---------- */
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function burst(el, emojis, count=18){
+  if(reduceMotion) return;
+  const r=el.getBoundingClientRect();
+  const cx=r.left+r.width/2, cy=r.top+r.height/2;
+  for(let i=0;i<count;i++){
+    const p=document.createElement('span');
+    p.className='particle'; p.textContent=pick(emojis);
+    p.style.left=cx+'px'; p.style.top=cy+'px';
+    document.body.appendChild(p);
+    const ang=Math.random()*Math.PI*2, dist=80+Math.random()*160;
+    const dx=Math.cos(ang)*dist, dy=Math.sin(ang)*dist-80;
+    p.animate([
+      {transform:'translate(-50%,-50%) scale(.4) rotate(0deg)', opacity:1},
+      {transform:`translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(1.1) rotate(${Math.random()*360-180}deg)`, opacity:1, offset:.6},
+      {transform:`translate(calc(-50% + ${dx}px), calc(-50% + ${dy+120}px)) scale(.8) rotate(${Math.random()*360-180}deg)`, opacity:0}
+    ], {duration:1100+Math.random()*500, easing:'cubic-bezier(.2,.8,.4,1)'}).onfinish=()=>p.remove();
+  }
+}
+
+let actx=null;
+function ctx(){ if(!actx){ try{ actx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } return actx; }
+function bell(freq, t0, dur=.5, vol=.12){
+  const a=ctx(); if(!a) return;
+  [1, 2.76, 5.4].forEach((m,i)=>{
+    const o=a.createOscillator(), g=a.createGain();
+    o.type='sine'; o.frequency.value=freq*m;
+    g.gain.setValueAtTime(0, t0);
+    g.gain.linearRampToValueAtTime(vol/(i+1), t0+.01);
+    g.gain.exponentialRampToValueAtTime(.0001, t0+dur);
+    o.connect(g).connect(a.destination); o.start(t0); o.stop(t0+dur+.05);
+  });
+}
+function jingle(notes){
+  if(!soundOn) return; const a=ctx(); if(!a) return;
+  notes.forEach((f,i)=>{ if(f) bell(f, a.currentTime+i*.14, .45); });
+}
+function thud(){
+  if(!soundOn) return; const a=ctx(); if(!a) return;
+  const o=a.createOscillator(), g=a.createGain(), t=a.currentTime;
+  o.type='triangle'; o.frequency.setValueAtTime(220,t); o.frequency.exponentialRampToValueAtTime(70,t+.35);
+  g.gain.setValueAtTime(.18,t); g.gain.exponentialRampToValueAtTime(.0001,t+.4);
+  o.connect(g).connect(a.destination); o.start(t); o.stop(t+.45);
+}
+
+// Fairy lights
+(function(){
+  const wrap=document.getElementById('lights');
+  const n=Math.max(10, Math.floor(window.innerWidth/48));
+  for(let i=0;i<n;i++){ const b=document.createElement('span'); b.className='bulb'; wrap.appendChild(b); }
+})();
+
+// Falling snow
+(function(){
+  if(reduceMotion) return;
+  const c=document.getElementById('snow'), g=c.getContext('2d');
+  let W,H,flakes=[];
+  function resize(){
+    W=c.width=window.innerWidth*devicePixelRatio; H=c.height=window.innerHeight*devicePixelRatio;
+    c.style.width=window.innerWidth+'px'; c.style.height=window.innerHeight+'px';
+    const count=Math.min(160, Math.floor(window.innerWidth/8));
+    flakes=Array.from({length:count},()=>({x:Math.random()*W, y:Math.random()*H, r:(Math.random()*2.6+0.8)*devicePixelRatio, s:Math.random()*0.8+0.4, d:Math.random()*Math.PI*2}));
+  }
+  function tick(){
+    g.clearRect(0,0,W,H); g.fillStyle='rgba(255,255,255,0.85)'; g.beginPath();
+    for(const f of flakes){
+      f.y+=f.s*devicePixelRatio; f.d+=0.01; f.x+=Math.sin(f.d)*0.5*devicePixelRatio;
+      if(f.y>H+5){ f.y=-5; f.x=Math.random()*W; }
+      g.moveTo(f.x,f.y); g.arc(f.x,f.y,f.r,0,Math.PI*2);
+    }
+    g.fill(); requestAnimationFrame(tick);
+  }
+  window.addEventListener('resize', resize); resize(); tick();
+})();
+</script>
+</body>
+</html>
